@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const teacherSchema = new mongoose.Schema({
-    name: {
+    username: {
         type: String,
         required: true,
     },
@@ -12,7 +12,7 @@ const teacherSchema = new mongoose.Schema({
     },
     dob: {
         type: Date,
-        required: true,
+        required: false,
     },
     email: {
         type: String,
@@ -22,7 +22,7 @@ const teacherSchema = new mongoose.Schema({
     },
     contactNo: {
         type: String,
-        required: true,
+        required: false,
         validate: {
             validator: function (v) {
                 return /^\d{10}$/.test(v);
@@ -32,7 +32,7 @@ const teacherSchema = new mongoose.Schema({
     },
     salary: {
         type: Number,
-        required: true,
+        required: false,
     },
     assignedClasses: [{
         type: mongoose.Schema.Types.ObjectId,

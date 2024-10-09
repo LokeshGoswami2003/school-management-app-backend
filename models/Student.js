@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 // Define the Student Schema
 const studentSchema = new mongoose.Schema({
-    name: {
+    username: {
         type: String,
         required: true,
     },
@@ -13,11 +13,11 @@ const studentSchema = new mongoose.Schema({
     },
     dob: {
         type: Date,
-        required: true,
+        required: false,
     },
     contactNo: {
         type: String,
-        required: true,
+        required: false,
         validate: {
             validator: function (v) {
                 return /^\d{10}$/.test(v); // Simple validation for a 10-digit phone number
@@ -33,13 +33,13 @@ const studentSchema = new mongoose.Schema({
     },
     feesPaid: {
         type: Boolean,
-        required: true,
+        required: false,
         default: false,  // Default to false
     },
     class: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Class',  // Reference the Class model
-        required: true,
+        required: false,
     },
 }, {
     timestamps: true,  // Automatically add createdAt and updatedAt fields
