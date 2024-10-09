@@ -41,6 +41,11 @@ const studentSchema = new mongoose.Schema({
         ref: 'Class',  // Reference the Class model
         required: false,
     },
+    schoolName: {
+        type: String,
+        unique: true,
+        required: true, // Admin's school name
+    },
 }, {
     timestamps: true,  // Automatically add createdAt and updatedAt fields
 });

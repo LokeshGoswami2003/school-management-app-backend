@@ -18,6 +18,7 @@ const adminSchema = new mongoose.Schema({
     },
     schoolName: {
         type: String,
+        unique: true,
         required: true, // Admin's school name
     },
 }, {

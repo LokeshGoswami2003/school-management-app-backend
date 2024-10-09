@@ -8,7 +8,7 @@ const Student = require("../models/Student");
 
 const signupController = async (req, res) => {
     try {
-        const { username, email, password, userType, schoolName, gender, dob } =
+        const { username, email, password, userType, schoolName, gender, dob, salary } =
             req.body;
 
         if (!email || !password || !username || !userType) {
@@ -22,9 +22,19 @@ const signupController = async (req, res) => {
         }
 
         if (userType == "student" || userType == "teacher") {
-            if (!gender) {
+            if (!gender || !schoolName) {
                 return res.send(error(400, "All fields are required"));
             }
+            if (userType == "teacher") {
+                if (!salary) {
+                    return res.send(error(400, "All fields are required"));
+                }
+            }
+        }
+
+        const adminExists = await Admin.findOne({ schoolName });
+        if (!adminExists) {
+            return res.send(error(400, "No admin found for the provided school name"));
         }
 
         const oldUser = await User.findOne({ email });
@@ -56,6 +66,7 @@ const signupController = async (req, res) => {
                 gender,
                 dob,
                 email,
+                schoolName
             });
         } else if (userType === "student") {
             await Student.create({
@@ -64,6 +75,7 @@ const signupController = async (req, res) => {
                 gender,
                 dob,
                 email,
+                schoolName
             });
         }
 

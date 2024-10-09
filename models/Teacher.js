@@ -32,12 +32,17 @@ const teacherSchema = new mongoose.Schema({
     },
     salary: {
         type: Number,
-        required: false,
+        required: true,
     },
     assignedClasses: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Class',
     }],
+    schoolName: {
+        type: String,
+        unique: true,
+        required: true, // Admin's school name
+    },
 }, {
     timestamps: true,
 });

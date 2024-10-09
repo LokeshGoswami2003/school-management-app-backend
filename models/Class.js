@@ -17,7 +17,7 @@ const classSchema = new mongoose.Schema({
     classTeacher: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Teacher',
-        required: true,
+        required: false,
     },
     classFees: {
         type: Number,
