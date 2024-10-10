@@ -13,4 +13,8 @@ router.get("/refresh", authController.refreshAccessTokenController);
 // User Logout
 router.post("/logout", authController.logoutController);
 
+router.put("/updateProfile", authController.updateProfileController);
+
+router.get("requireUserObj", authController.requireUserObj);
+
 module.exports = router;

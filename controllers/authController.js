@@ -5,36 +5,64 @@ const { error, success } = require("../utils/responseWrapper");
 const Admin = require("../models/Admin");
 const Teacher = require("../models/Teacher");
 const Student = require("../models/Student");
+const requireUser = require("../utils/requireUser");
 
 const signupController = async (req, res) => {
     try {
-        const { username, email, password, userType, schoolName, gender, dob, salary } =
-            req.body;
-
-        if (!email || !password || !username || !userType) {
+        const {
+            username,
+            email,
+            password,
+            userType,
+            schoolName,
+            gender,
+            dob,
+            salary,
+        } = req.body;
+        console.log(
+            email +
+                " " +
+                password +
+                " " +
+                username +
+                " " +
+                userType +
+                " " +
+                schoolName +
+                " " +
+                gender +
+                " " +
+                dob +
+                " " +
+                salary
+        );
+        if (
+            !email ||
+            !password ||
+            !username ||
+            !userType ||
+            !schoolName ||
+            !gender ||
+            !dob
+        ) {
             return res.send(error(400, "All fields are required"));
         }
 
-        if (userType == "admin") {
-            if (!schoolName) {
-                return res.send(error(401, "All fields are required"));
+        if (userType === "student" || userType === "teacher") {
+            if (userType === "teacher" && !salary) {
+                return res.send(error(400, "Salary is required"));
             }
-        }
-
-        if (userType == "student" || userType == "teacher") {
-            if (!gender || !schoolName) {
-                return res.send(error(400, "All fields are required"));
+            const adminExists = await Admin.findOne({ schoolName });
+            console.log(adminExists);
+            if (!adminExists) {
+                return res.send(error(400, "School name does not exist"));
             }
-            if (userType == "teacher") {
-                if (!salary) {
-                    return res.send(error(400, "All fields are required"));
-                }
+        } else if (userType === "admin") {
+            // Check if the schoolName already exists for another admin
+            const existingAdmin = await Admin.findOne({ schoolName });
+            if (existingAdmin) {
+                return res.send(error(400, "School name already taken"));
             }
-        }
-
-        const adminExists = await Admin.findOne({ schoolName });
-        if (!adminExists) {
-            return res.send(error(400, "No admin found for the provided school name"));
         }
 
         const oldUser = await User.findOne({ email });
@@ -46,28 +74,50 @@ const signupController = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create user
+        console.log("iam here");
+
         const user = await User.create({
             username,
             email,
             password: hashedPassword,
             userType,
+            gender,
+            schoolName,
+            salary,
+            dob,
         });
+        console.log("our user", user);
+
+        // Add the userId field based on the user's `_id`
+        user.userId = user._id;
+
+        // Optionally save it again if needed
+        await user.save();
+        console.log("mtyttt", user);
+
         if (userType === "admin") {
             await Admin.create({
                 userId: user._id,
                 username,
                 email,
+                userType,
                 schoolName,
+                gender,
+                dob,
             });
         } else if (userType === "teacher") {
-            await Teacher.create({
+            const t = await Teacher.create({
                 userId: user._id,
                 username,
                 gender,
                 dob,
                 email,
-                schoolName
+                userType,
+                schoolName,
+                dob,
+                salary,
             });
+            console.log("heree", t);
         } else if (userType === "student") {
             await Student.create({
                 userId: user._id,
@@ -75,11 +125,12 @@ const signupController = async (req, res) => {
                 gender,
                 dob,
                 email,
-                schoolName
+                userType,
+                schoolName,
             });
         }
-
-        return res.send(success(201, "User created successfully"));
+        delete user.password;
+        return res.send(success(201, { user }));
     } catch (err) {
         return res.send(error(500, err.message));
     }
@@ -114,8 +165,10 @@ const loginController = async (req, res) => {
         const accessToken = generateAccessToken({ _id: user._id });
         const refreshToken = generateRefreshToken({ _id: user._id });
         res.cookie("jwt", refreshToken, { httpOnly: true, secure: true });
+        delete user.password;
+        console.log(user);
 
-        return res.send(success(200, { accessToken }));
+        return res.send(success(200, { accessToken, user }));
     } catch (err) {
         return res.send(error(500, err.message));
     }
@@ -167,10 +220,85 @@ const generateRefreshToken = (data) => {
         expiresIn: "1y",
     });
 };
+const requireUserObj = async (req, res) => {
+    const user = awaitrequireUser(req).user;
+    console.log(user);
+
+    return res.send(success(201, { user }));
+};
+const updateProfileController = async (req, res) => {
+    try {
+        const { username, email, phone, dob, userType, userId, gender } =
+            req.body;
+        console.log(gender + "nnngendernnn");
+
+        console.log(username, email, phone, dob + " `````", userId + "hh");
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { username, email, phone, dob, gender }, // Update these fields
+            { new: false, runValidators: true } // Return the updated document
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        console.log("kdmld" + updatedUser);
+
+        // Update corresponding userType model based on userType
+        if (userType === "admin") {
+            const updatedAdmin = await Admin.findOneAndUpdate(
+                { userId: userId },
+                { username, email, phone, dob, gender }, // Update admin fields if needed
+                { new: false, runValidators: true } // Return the updated document
+            );
+
+            if (!updatedAdmin) {
+                return res
+                    .status(404)
+                    .json({ message: "Admin details not found" });
+            }
+            console.log("s", updatedAdmin);
+        } else if (userType === "teacher") {
+            const updatedTeacher = await Teacher.findOneAndUpdate(
+                { userId: userId },
+                { username, email, phone, gender, dob }, // Update teacher fields if needed
+                { new: false, runValidators: true }
+            );
+
+            if (!updatedTeacher) {
+                return res
+                    .status(404)
+                    .json({ message: "Teacher details not found" });
+            }
+            console.log("t", updatedTeacher);
+        } else if (userType === "student") {
+            const updatedStudent = await Student.findOneAndUpdate(
+                { userId: userId },
+                { username, email, phone, gender, dob }, // Update student fields if needed
+                { new: false, runValidators: true }
+            );
+
+            if (!updatedStudent) {
+                return res
+                    .status(404)
+                    .json({ message: "Student details not found" });
+            }
+            console.log("s", updatedStudent);
+        }
+
+        return res
+            .status(200)
+            .json({ message: "Profile updated successfully" });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
 
 module.exports = {
     signupController,
     loginController,
     refreshAccessTokenController,
     logoutController,
+    updateProfileController,
+    requireUserObj,
 };
