@@ -43,10 +43,9 @@ const studentSchema = new mongoose.Schema(
             required: false,
             default: false, // Default to false
         },
-        class: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Class", // Reference the Class model
-            required: false,
+        className: {
+            type: String,
+            required: true,
         },
         schoolName: {
             type: String,

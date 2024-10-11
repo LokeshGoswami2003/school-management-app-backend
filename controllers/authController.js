@@ -5,7 +5,7 @@ const { error, success } = require("../utils/responseWrapper");
 const Admin = require("../models/Admin");
 const Teacher = require("../models/Teacher");
 const Student = require("../models/Student");
-const requireUser = require("../utils/requireUser");
+const Class = require("../models/Class");
 
 const signupController = async (req, res) => {
     try {
@@ -18,24 +18,13 @@ const signupController = async (req, res) => {
             gender,
             dob,
             salary,
+            className,
         } = req.body;
+
         console.log(
-            email +
-                " " +
-                password +
-                " " +
-                username +
-                " " +
-                userType +
-                " " +
-                schoolName +
-                " " +
-                gender +
-                " " +
-                dob +
-                " " +
-                salary
+            `${email} ${password} ${username} ${userType} ${schoolName} ${gender} ${dob} ${salary} ${className}`
         );
+
         if (
             !email ||
             !password ||
@@ -49,17 +38,56 @@ const signupController = async (req, res) => {
         }
 
         if (userType === "student" || userType === "teacher") {
+            console.log("1");
+
+            if (!className) {
+                return res.send(error(400, "className is required"));
+            }
+
             if (userType === "teacher" && !salary) {
                 return res.send(error(400, "Salary is required"));
             }
+
+            console.log("2");
+
             const adminExists = await Admin.findOne({ schoolName });
             console.log(adminExists);
+
             if (!adminExists) {
                 return res.send(error(400, "School name does not exist"));
             }
+
+            console.log("3");
+
+            const classes = await Class.findOne({ className });
+            console.log("4");
+
+            if (!classes) {
+                return res.send(error(400, "Class does not exist"));
+            }
+
+            console.log("this is my class" + classes);
+
+            if (classes.totalStudents == classes.capacity) {
+                return res.send(error(400, "Class is full"));
+            }
+
+            console.log("11");
+
+            // Update the male and female counts based on the user's gender
+            if (gender.toLowerCase() === "male") {
+                classes.maleCount += 1;
+            } else if (gender.toLowerCase() === "female") {
+                classes.femaleCount += 1;
+            }
+
+            classes.totalStudents += 1; // Increment the total students count
+
+            await classes.save();
+            console.log("12");
         } else if (userType === "admin") {
-            // Check if the schoolName already exists for another admin
             const existingAdmin = await Admin.findOne({ schoolName });
+
             if (existingAdmin) {
                 return res.send(error(400, "School name already taken"));
             }
@@ -73,9 +101,9 @@ const signupController = async (req, res) => {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create user
-        console.log("iam here");
+        console.log("I am here");
 
+        // Create user
         const user = await User.create({
             username,
             email,
@@ -86,14 +114,25 @@ const signupController = async (req, res) => {
             salary,
             dob,
         });
-        console.log("our user", user);
+
+        // Assign className (ObjectId) for student or teacher
+        if (userType === "student" || userType === "teacher") {
+            const classData = await Class.findOne({ className });
+
+            if (!classData) {
+                return res.send(error(404, "Class not found"));
+            }
+
+            user.className = classData._id; // Assign the ObjectId of the class
+        }
+
+        console.log("Our user", user);
 
         // Add the userId field based on the user's `_id`
         user.userId = user._id;
+        await user.save(); // Save the user again with userId
 
-        // Optionally save it again if needed
-        await user.save();
-        console.log("mtyttt", user);
+        console.log("User saved", user);
 
         if (userType === "admin") {
             await Admin.create({
@@ -116,8 +155,9 @@ const signupController = async (req, res) => {
                 schoolName,
                 dob,
                 salary,
+                className: user.className, // Save the ObjectId of the class
             });
-            console.log("heree", t);
+            console.log("Teacher created", t);
         } else if (userType === "student") {
             await Student.create({
                 userId: user._id,
@@ -127,9 +167,12 @@ const signupController = async (req, res) => {
                 email,
                 userType,
                 schoolName,
+                className: user.className, // Save the ObjectId of the class
             });
         }
-        delete user.password;
+
+        delete user.password; // Remove password before returning the user
+
         return res.send(success(201, { user }));
     } catch (err) {
         return res.send(error(500, err.message));

@@ -1,4 +1,21 @@
 const Class = require("../models/Class");
+
+const getClassId = async (req, res) => {
+    try {
+        const { className, schoolName } = req.body;
+
+        const classData = await Class.findOne({ className, schoolName });
+
+        if (!classData) {
+            return res.status(404).json({ message: "Class not found" });
+        }
+
+        return res.status(200).json({ classId: classData._id });
+    } catch (err) {
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
 const fetchClassController = async (req, res) => {
     try {
         const classId = req.params.classId; // Get class ID from request parameters
@@ -24,6 +41,8 @@ const createClass = async (req, res) => {
         const { className, year, classFees, capacity, adminId, userType } =
             req.body;
 
+        console.log(userType + className + "DD");
+
         // Check if the user is an admin
         if (userType !== "admin") {
             return res
@@ -31,6 +50,9 @@ const createClass = async (req, res) => {
                 .json({ message: "Only admins can create classes" });
         }
 
+        const classes = await Class.find({
+            className,
+        });
         // Create the class
         const newClass = await Class.create({
             className,
@@ -49,4 +71,4 @@ const createClass = async (req, res) => {
     }
 };
 
-module.exports = { createClass, fetchClassController };
+module.exports = { createClass, fetchClassController, getClassId };

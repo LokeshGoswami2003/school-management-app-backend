@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema(
         salary: {
             type: Number,
         },
+        className: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Class", // Reference the Class model
+        },
         phone: {
             type: String,
             required: false,

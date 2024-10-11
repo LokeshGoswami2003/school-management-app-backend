@@ -44,12 +44,10 @@ const teacherSchema = new mongoose.Schema(
         salary: {
             type: Number,
         },
-        classList: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Class",
-            },
-        ],
+        className: {
+            type: String,
+            required: true,
+        },
         schoolName: {
             type: String,
             required: true, // Admin's school name
